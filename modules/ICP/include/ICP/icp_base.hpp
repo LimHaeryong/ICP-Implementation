@@ -25,10 +25,10 @@ protected:
     KDTreePtr tree_ = nullptr;
     Eigen::Matrix4d total_transform_ = Eigen::Matrix4d::Identity();
     std::vector<std::pair<int, int>> correspondence_set_;
-    int max_iteration_ = 200;
+    int max_iteration_ = 30;
     bool converged_ = false;
-    double max_correspondence_distance_ = 100.0;
-    double euclidean_fitness_epsilon_ = 1e-8;
+    double max_corres_dist_ = 100.0;
+    double euclidean_fitness_epsilon_ = 1e-6;
     double transformation_epsilon_ = 1e-6;
     double euclidean_error_ = 0.0;
     

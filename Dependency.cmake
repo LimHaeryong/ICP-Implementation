@@ -4,6 +4,8 @@ set(DEP_INSTALL_DIR ${PROJECT_BINARY_DIR}/install)
 set(DEP_INCLUDE_DIR ${DEP_INSTALL_DIR}/include)
 set(DEP_LIBS_DIR ${DEP_INSTALL_DIR}/lib)
 
+set(DEP_LIBS ${DEP_LIBS} OpenMP::OpenMP_CXX)
+
 find_package(Open3D REQUIRED)
 set(DEP_LIBS ${DEP_LIBS} Open3D::Open3D)
 

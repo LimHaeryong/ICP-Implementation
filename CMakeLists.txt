@@ -35,8 +35,8 @@ target_link_libraries(icp_example PUBLIC
     ICP
 )
 
-set(SOURCE_CLOUD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources/room_scan1.pcd)
-set(TARGET_CLOUD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources/room_scan2.pcd)
+set(SOURCE_CLOUD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources/0000000240.bin)
+set(TARGET_CLOUD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources/0000000250.bin)
 target_compile_definitions(icp_example PRIVATE
     SOURCE_CLOUD_PATH="${SOURCE_CLOUD_PATH}"
     TARGET_CLOUD_PATH="${TARGET_CLOUD_PATH}"
