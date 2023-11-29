@@ -2,8 +2,11 @@
 #include <memory>
 #include <thread>
 #include <vector>
+#include <chrono>
+#include <fstream>
 
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 #include <open3d/Open3D.h>
 
 #include "ICP/icp.hpp"
@@ -35,6 +38,33 @@ void visualizeRegistration(const open3d::geometry::PointCloud &source,
     visualizer->Run();
 }
 
+std::shared_ptr<open3d::geometry::PointCloud> read_bin(const std::string& file_path)
+{
+    auto cloud = std::make_shared<open3d::geometry::PointCloud>();
+    std::ifstream file(file_path, std::ios::binary);
+    if(!file.is_open())
+        return cloud;
+    
+    file.seekg(0, std::ios::end);
+    std::streampos file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::size_t point_size = sizeof(float) * 4;
+    std::size_t num_points = file_size / point_size;
+
+    cloud->points_.resize(num_points);
+    Eigen::Vector4f kitti_point;
+
+    for(std::size_t i = 0; i < num_points; ++i)
+    {
+        if(!file.read(reinterpret_cast<char*>(kitti_point.data()), point_size))
+            break;
+        cloud->points_[i] = kitti_point.head<3>().cast<double>();
+    }
+
+    return cloud;
+}
+
 int main(int argc, char *argv[])
 {
     spdlog::info("icp example starts");
@@ -51,8 +81,11 @@ int main(int argc, char *argv[])
         target_path = TARGET_CLOUD_PATH;
     }
 
-    auto source = open3d::io::CreatePointCloudFromFile(source_path);
-    auto target = open3d::io::CreatePointCloudFromFile(target_path);
+    // auto source = open3d::io::CreatePointCloudFromFile(source_path);
+    // auto target = open3d::io::CreatePointCloudFromFile(target_path);
+
+    auto source = read_bin(source_path);
+    auto target = read_bin(target_path);
     if (source->IsEmpty() || target->IsEmpty())
     {
         spdlog::warn("unable to load source or target files.");
@@ -66,20 +99,35 @@ int main(int argc, char *argv[])
     auto source_down = source->VoxelDownSample(voxel_size);
     auto target_down = target->VoxelDownSample(voxel_size);
 
+    auto t_start = std::chrono::high_resolution_clock::now();
     auto reg_result = open3d::pipelines::registration::RegistrationICP(
         *source_down, *target_down, 100.0, Eigen::Matrix4d::Identity(),
         open3d::pipelines::registration::TransformationEstimationPointToPoint(),
         open3d::pipelines::registration::ICPConvergenceCriteria(1e-6, 1e-6, iteration));
-
+    auto t_end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
     trans = reg_result.transformation_;
-
+    spdlog::info("Open3D ICP elapsed time : {}ms", duration);
+    spdlog::info("trans = {}", trans);
     visualizeRegistration(*source, *target, trans);
 
-    ICP icp;
-    icp.align(*source_down, *target_down);
-    auto trans2 = icp.getResultTransform();
+    // ground removal test
+    // auto [source_plane_model, source_inliers] = source_down->SegmentPlane(0.2);
+    // auto source_ground_removed = source_down->SelectByIndex(source_inliers, true);
+    // auto [target_plane_model, target_inliers] = target_down->SegmentPlane(0.2);
+    // auto target_ground_removed = target_down->SelectByIndex(target_inliers, true);
 
+    ICP icp;
+    t_start = std::chrono::high_resolution_clock::now();
+    icp.align(*source_down, *target_down);
+    t_end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
+    auto trans2 = icp.getResultTransform();
+    spdlog::info("My ICP elapsed time : {}ms", duration);
+    spdlog::info("trans = {}", trans2);
     visualizeRegistration(*source, *target, trans2);
+
+
 
     return 0;
 }

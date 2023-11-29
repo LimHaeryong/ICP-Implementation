@@ -24,3 +24,6 @@ target_link_directories(${LIBRARY_NAME} PRIVATE
 target_link_libraries(${LIBRARY_NAME} PUBLIC
     ${DEP_LIBS}
 )
+target_compile_options(${LIBRARY_NAME} PRIVATE
+    ${OpenMP_CXX_FLAGS}
+)
