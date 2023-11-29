@@ -16,7 +16,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG")
 
 include(Dependency.cmake)
-#add_subdirectory(modules)
+add_subdirectory(modules)
 
 add_executable(icp_example examples/icp_example.cpp)
 if(NOT ${DEP_LIST} STREQUAL "")
@@ -32,6 +32,7 @@ target_link_directories(icp_example PRIVATE
 )
 target_link_libraries(icp_example PUBLIC
     ${DEP_LIBS}
+    ICP
 )
 
 set(SOURCE_CLOUD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources/room_scan1.pcd)
