@@ -34,7 +34,7 @@ protected:
     std::vector<std::pair<int, int>> correspondence_set_;
     int max_iteration_ = 30;
     bool converged_ = false;
-    double max_corres_dist_ = 100.0;
+    double max_corres_dist_ = 10.0;
     double euclidean_fitness_epsilon_ = 1e-6;
     double transformation_epsilon_ = 1e-6;
     double euclidean_error_ = 0.0;

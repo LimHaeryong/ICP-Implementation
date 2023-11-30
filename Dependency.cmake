@@ -6,13 +6,11 @@ set(DEP_LIBS_DIR ${DEP_INSTALL_DIR}/lib)
 
 set(DEP_LIBS ${DEP_LIBS} OpenMP::OpenMP_CXX)
 
-find_package(Ceres REQUIRED)
+find_package(Ceres REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/ceres-solver/lib/cmake/Ceres)
 set(DEP_LIBS ${DEP_LIBS} Ceres::ceres)
 
-find_package(Open3D REQUIRED)
+find_package(Open3D REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/Open3d/lib/cmake/Open3D)
 set(DEP_LIBS ${DEP_LIBS} Open3D::Open3D)
-
-
 
 # spdlog
 ExternalProject_Add(

@@ -22,8 +22,6 @@ void ICP_PLANE::align(const PointCloud &source_cloud, const PointCloud &target_c
 
     for (int i = 0; i < max_iteration_; ++i)
     {
-        spdlog::info("iter : {}", i);
-
         auto t_0 = std::chrono::high_resolution_clock::now();
         correspondenceMatching(tmp_cloud);
         auto t_1 = std::chrono::high_resolution_clock::now();

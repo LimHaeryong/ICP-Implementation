@@ -101,29 +101,37 @@ int main(int argc, char *argv[])
     auto source_down = source->VoxelDownSample(voxel_size);
     auto target_down = target->VoxelDownSample(voxel_size);
 
+    source_down->EstimateNormals();
+    target_down->EstimateNormals();
+
     auto t_start = std::chrono::high_resolution_clock::now();
     auto reg_result = open3d::pipelines::registration::RegistrationICP(
         *source_down, *target_down, max_correspondence_dist, Eigen::Matrix4d::Identity(),
-        open3d::pipelines::registration::TransformationEstimationPointToPoint(),
+        open3d::pipelines::registration::TransformationEstimationPointToPlane(),
         open3d::pipelines::registration::ICPConvergenceCriteria(1e-6, 1e-6, iteration));
     auto t_end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
+
     trans = reg_result.transformation_;
+
     spdlog::info("Open3D ICP elapsed time : {}ms", duration);
     spdlog::info("trans = {}", trans);
     visualizeRegistration(*source, *target, trans);
 
     target_down->EstimateNormals();
 
-    ICP icp;
+    ICP_PLANE icp;
     icp.setIteration(iteration);
     icp.setMaxCorrespondenceDist(max_correspondence_dist);
+
     t_start = std::chrono::high_resolution_clock::now();
     icp.align(*source_down, *target_down);
     t_end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
+
     auto trans2 = icp.getResultTransform();
-    spdlog::info("My ICP elapsed time : {}ms", duration);
+    
+    spdlog::info("My Point to Plane ICP elapsed time : {}ms", duration);
     spdlog::info("trans = {}", trans2);
     visualizeRegistration(*source, *target, trans2);
 

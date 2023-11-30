@@ -12,16 +12,29 @@ class CeresOptimizer
 public:
     enum Type
     {
-        PointToPlane,
-        GICP
+        PointToPlane = 0,
+        GICP = 1
     };
 
     CeresOptimizer(Type optimizer_type)
         : optimizer_type_(optimizer_type), problem_(std::make_unique<ceres::Problem>())
     {
         options_.linear_solver_type = ceres::ITERATIVE_SCHUR;
-        options_.num_threads = 1;
+        options_.num_threads = 8;
         options_.minimizer_progress_to_stdout = false;
+        options_.logging_type = ceres::SILENT;
+
+        switch(optimizer_type_)
+        {
+        case Type::PointToPlane :
+            options_.max_num_iterations = 10;
+            options_.parameter_tolerance = 1e-7;
+            options_.gradient_tolerance = 1e-8;
+            options_.function_tolerance = 1e-4;
+            break;
+        case Type::GICP :
+            break;
+        }
     }
 
     virtual ~CeresOptimizer() {}
@@ -55,34 +68,16 @@ struct PointToPlaneError
     template <typename T>
     bool operator()(const T *const rotation, const T *const translation, T *residuals) const
     {
-        // const Eigen::Matrix<T, 3, 1> p_source = p_source_.cast<T>();
-        // const Eigen::Matrix<T, 3, 1> p_target = p_target_.cast<T>();
-        // const Eigen::Matrix<T, 3, 1> norm_target = norm_target_.cast<T>();
+        const Eigen::Matrix<T, 3, 1> p_source = p_source_.cast<T>();
+        const Eigen::Matrix<T, 3, 1> p_target = p_target_.cast<T>();
+        const Eigen::Matrix<T, 3, 1> norm_target = norm_target_.cast<T>();
 
-        // Eigen::Matrix<T, 3, 1> p_diff;
-        // ceres::AngleAxisRotatePoint(rotation, p_source.data(), p_diff.data());
-        // for (int i = 0; i < 3; ++i)
-        //     p_diff[i] += translation[i];
-        // p_diff -= p_target;
-        // residuals[0] = ceres::DotProduct(norm_target.data(), p_diff.data());
-
-        T p_source[3];
-        T p_target[3];
-        T norm_target[3];
-        T p_diff[3];
-        for(int i = 0; i < 3; ++i)
-        {
-            p_source[i] = static_cast<T>(p_source_(i));
-            p_target[i] = static_cast<T>(p_target_(i));
-            norm_target[i] = static_cast<T>(norm_target_(i));
-        }
-
-        ceres::AngleAxisRotatePoint(rotation, p_source, p_diff);
-        for(int i = 0; i < 3; ++i)
-            p_diff[i] += translation[i] - p_target[i];
-        
-        residuals[0] = ceres::DotProduct(norm_target, p_diff);
-
+        Eigen::Matrix<T, 3, 1> p_diff;
+        ceres::AngleAxisRotatePoint(rotation, p_source.data(), p_diff.data());
+        for (int i = 0; i < 3; ++i)
+            p_diff[i] += translation[i];
+        p_diff -= p_target;
+        residuals[0] = ceres::DotProduct(norm_target.data(), p_diff.data());
         return true;
     }
 
