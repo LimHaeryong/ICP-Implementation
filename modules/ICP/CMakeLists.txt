@@ -7,7 +7,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUITED ON)
 
 add_library(${LIBRARY_NAME} 
+    src/icp_base.cpp    
     src/icp.cpp
+    src/icp_plane.cpp
+    src/ceres_optimizer.cpp
 )
 if(NOT ${DEP_LIST} STREQUAL "")
     add_dependencies(${LIBRARY_NAME}  

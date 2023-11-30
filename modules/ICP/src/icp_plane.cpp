@@ -3,13 +3,16 @@
 #include <spdlog/spdlog.h>
 #include <omp.h>
 
-#include "ICP/icp.hpp"
+#include "ICP/icp_plane.hpp"
 
-#pragma omp declare reduction(matrix_reduction : Eigen::MatrixXd : omp_out += omp_in) initializer(omp_priv = Eigen::MatrixXd::Zero(omp_orig.rows(), omp_orig.cols()))
-#pragma omp declare reduction(vec3d_reduction : Eigen::Vector3d : omp_out += omp_in) initializer(omp_priv = Eigen::Vector3d::Zero())
-
-void ICP::align(const PointCloud &source_cloud, const PointCloud &target_cloud)
+void ICP_PLANE::align(const PointCloud &source_cloud, const PointCloud &target_cloud)
 {
+    if(!target_cloud.HasNormals())
+    {
+        spdlog::warn("point to plane ICP needs normal points in the target pointcloud.");
+        return;
+    }
+
     total_transform_ = Eigen::Matrix4d::Identity();
     PointCloud tmp_cloud = source_cloud;
     tree_ = std::make_shared<KDTree>(target_cloud);
@@ -19,6 +22,8 @@ void ICP::align(const PointCloud &source_cloud, const PointCloud &target_cloud)
 
     for (int i = 0; i < max_iteration_; ++i)
     {
+        spdlog::info("iter : {}", i);
+
         auto t_0 = std::chrono::high_resolution_clock::now();
         correspondenceMatching(tmp_cloud);
         auto t_1 = std::chrono::high_resolution_clock::now();
@@ -44,42 +49,24 @@ void ICP::align(const PointCloud &source_cloud, const PointCloud &target_cloud)
     spdlog::info("transform/check elapsed time : {} micro seconds", t_trans);
 }
 
-Eigen::Matrix4d ICP::computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud)
+Eigen::Matrix4d ICP_PLANE::computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud)
 {
-    int num_corr = correspondence_set_.size();
-
-    Eigen::MatrixXd X(3, num_corr);
-    Eigen::MatrixXd Y(3, num_corr);
-    Eigen::Vector3d P = Eigen::Vector3d::Zero();
-    Eigen::Vector3d Q = Eigen::Vector3d::Zero();
-
-    for (int i = 0; i < num_corr; ++i)
+    optimizer_->clear();
+    Eigen::Vector3d rotation = Eigen::Vector3d::Zero();
+    Eigen::Vector3d translation = Eigen::Vector3d::Zero();
+    const auto& source_points = source_cloud.points_;
+    const auto& target_points = target_cloud.points_;
+    const auto& target_norms = target_cloud.normals_;
+    for(std::size_t i = 0; i < correspondence_set_.size(); ++i)
     {
-        P += source_cloud.points_[correspondence_set_[i].first];
-        Q += target_cloud.points_[correspondence_set_[i].second];
+        auto [source_idx, target_idx] = correspondence_set_[i];
+        optimizer_->addPointToPlaneResidual(source_points[source_idx], target_points[target_idx], target_norms[target_idx], rotation, translation);
     }
-
-    P /= static_cast<double>(num_corr);
-    Q /= static_cast<double>(num_corr);
-
-    #pragma omp parallel for
-    for (int i = 0; i < num_corr; ++i)
-    {
-        X.col(i) = source_cloud.points_[correspondence_set_[i].first];
-        Y.col(i) = target_cloud.points_[correspondence_set_[i].second];
-    }
-
-    Eigen::Matrix3d S = X * Y.transpose();
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(S, Eigen::ComputeFullU | Eigen::ComputeFullV);
-
-    Eigen::Matrix3d D = Eigen::Matrix3d::Identity();
-    D(2, 2) = (svd.matrixV() * svd.matrixU().transpose()).determinant();
-
-    Eigen::Matrix3d R = svd.matrixV() * D * svd.matrixU().transpose();
-    Eigen::Vector3d t = Q - R * P;
+    optimizer_->solve();
     Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
-    transform.block<3, 3>(0, 0) = R;
-    transform.block<3, 1>(0, 3) = t;
+    Eigen::AngleAxisd angle_axis(rotation.norm(), rotation.normalized());
+    transform.block<3, 3>(0, 0) = angle_axis.toRotationMatrix();
+    transform.block<3, 1>(0, 3) = translation;
 
     return transform;
 }

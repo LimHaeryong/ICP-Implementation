@@ -10,6 +10,7 @@
 #include <open3d/Open3D.h>
 
 #include "ICP/icp.hpp"
+#include "ICP/icp_plane.hpp"
 
 void visualizeRegistration(const open3d::geometry::PointCloud &source,
                            const open3d::geometry::PointCloud &target,
@@ -93,7 +94,7 @@ int main(int argc, char *argv[])
     }
 
     double voxel_size = 0.2;
-    int iteration = 200;
+    int iteration = 50;
     Eigen::Matrix4d trans = Eigen::Matrix4d::Identity();
 
     auto source_down = source->VoxelDownSample(voxel_size);
@@ -111,13 +112,10 @@ int main(int argc, char *argv[])
     spdlog::info("trans = {}", trans);
     visualizeRegistration(*source, *target, trans);
 
-    // ground removal test
-    // auto [source_plane_model, source_inliers] = source_down->SegmentPlane(0.2);
-    // auto source_ground_removed = source_down->SelectByIndex(source_inliers, true);
-    // auto [target_plane_model, target_inliers] = target_down->SegmentPlane(0.2);
-    // auto target_ground_removed = target_down->SelectByIndex(target_inliers, true);
+    target_down->EstimateNormals();
 
-    ICP icp;
+    ICP_PLANE icp;
+    icp.setIteration(iteration);
     t_start = std::chrono::high_resolution_clock::now();
     icp.align(*source_down, *target_down);
     t_end = std::chrono::high_resolution_clock::now();
@@ -126,8 +124,6 @@ int main(int argc, char *argv[])
     spdlog::info("My ICP elapsed time : {}ms", duration);
     spdlog::info("trans = {}", trans2);
     visualizeRegistration(*source, *target, trans2);
-
-
 
     return 0;
 }

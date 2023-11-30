@@ -18,10 +18,17 @@ public:
 
     virtual void align(const PointCloud& source_cloud, const PointCloud& target_cloud) = 0;
 
+    void setIteration(int iteration) { max_iteration_ = iteration; }
+    void setMaxCorrespondenceDist(double dist) { max_corres_dist_ = dist; }
+    void setEuclideanFitnessEpsilon(double epsilon) { euclidean_fitness_epsilon_ = epsilon; }
+    void setTransformationEpsilon(double epsilon) { transformation_epsilon_ = epsilon; }
+
     Eigen::Matrix4d getResultTransform() const { return total_transform_; }
     bool hasConverged() const { return converged_; }
 
-protected:
+protected: 
+    void correspondenceMatching(const PointCloud &tmp_cloud);
+
     KDTreePtr tree_ = nullptr;
     Eigen::Matrix4d total_transform_ = Eigen::Matrix4d::Identity();
     std::vector<std::pair<int, int>> correspondence_set_;
