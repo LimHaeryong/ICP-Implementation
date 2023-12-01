@@ -24,30 +24,30 @@ public:
         options_.minimizer_progress_to_stdout = false;
         options_.logging_type = ceres::SILENT;
 
-        switch(optimizer_type_)
+        switch (optimizer_type_)
         {
-        case Type::PointToPlane :
+        case Type::PointToPlane:
             options_.max_num_iterations = 10;
             options_.parameter_tolerance = 1e-8;
             options_.gradient_tolerance = 1e-8;
             options_.function_tolerance = 1e-4;
             break;
-        case Type::GICP :
+        case Type::GICP:
             break;
         }
     }
 
     virtual ~CeresOptimizer() {}
 
-    void clear() 
-    { 
-        problem_.reset(new ceres::Problem()); 
+    void clear()
+    {
+        problem_.reset(new ceres::Problem());
     }
 
-    void solve() 
+    void solve()
     {
         ceres::Solver::Summary summary;
-        ceres::Solve(options_, problem_.get(), &summary); 
+        ceres::Solve(options_, problem_.get(), &summary);
     }
     void addPointToPlaneResidual(const Eigen::Vector3d &p_source, const Eigen::Vector3d &p_target, const Eigen::Vector3d &norm_target, Eigen::Vector3d &rotation, Eigen::Vector3d &translation);
 
@@ -55,7 +55,6 @@ private:
     Type optimizer_type_;
     std::unique_ptr<ceres::Problem> problem_;
     ceres::Solver::Options options_;
-    
 };
 
 struct PointToPlaneError

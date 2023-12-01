@@ -16,7 +16,7 @@ public:
 
     ICP_BASE() {}
 
-    virtual void align(const PointCloud& source_cloud, const PointCloud& target_cloud) = 0;
+    virtual void align(const PointCloud &source_cloud, const PointCloud &target_cloud) = 0;
 
     void setIteration(int iteration) { max_iteration_ = iteration; }
     void setMaxCorrespondenceDist(double dist) { max_corres_dist_ = dist; }
@@ -26,7 +26,7 @@ public:
     Eigen::Matrix4d getResultTransform() const { return total_transform_; }
     bool hasConverged() const { return converged_; }
 
-protected: 
+protected:
     void correspondenceMatching(const PointCloud &tmp_cloud);
 
     KDTreePtr tree_ = nullptr;
@@ -38,7 +38,6 @@ protected:
     double euclidean_fitness_epsilon_ = 1e-6;
     double transformation_epsilon_ = 1e-6;
     double euclidean_error_ = 0.0;
-    
 };
 
 #endif // _ICP_ICP_BASE_HPP_

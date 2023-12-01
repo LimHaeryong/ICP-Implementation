@@ -16,7 +16,7 @@ public:
     ICP_PLANE(SolverType solverType = SolverType::Linear)
         : solverType_(solverType)
     {
-        if(solverType == SolverType::NonLinear)
+        if (solverType == SolverType::NonLinear)
             optimizer_ = std::make_unique<CeresOptimizer>(CeresOptimizer::Type::PointToPlane);
     }
 

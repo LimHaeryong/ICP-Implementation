@@ -10,7 +10,6 @@
 #include <open3d/Open3D.h>
 
 #include "ICP/icp.hpp"
-#include "ICP/icp_plane.hpp"
 
 void visualizeRegistration(const open3d::geometry::PointCloud &source,
                            const open3d::geometry::PointCloud &target,
@@ -26,8 +25,6 @@ void visualizeRegistration(const open3d::geometry::PointCloud &source,
     source_copy->PaintUniformColor({0, 0, 1});
     target_copy->PaintUniformColor({0, 1, 0});
     source_transformed->Transform(trans);
-    // open3d::visualization::DrawGeometries({source_transformed, target_copy},
-    //                                       "ICP result", 1024, 768);
 
     auto visualizer = std::make_unique<open3d::visualization::Visualizer>();
     visualizer->CreateVisualizerWindow("ICP result", 1024, 768);
@@ -35,17 +32,17 @@ void visualizeRegistration(const open3d::geometry::PointCloud &source,
     visualizer->GetRenderOption().background_color_ = {0, 0, 0};
     visualizer->AddGeometry(source_transformed);
     visualizer->AddGeometry(target_copy);
-    
+
     visualizer->Run();
 }
 
-std::shared_ptr<open3d::geometry::PointCloud> read_bin(const std::string& file_path)
+std::shared_ptr<open3d::geometry::PointCloud> readBinFile(const std::string &file_path)
 {
     auto cloud = std::make_shared<open3d::geometry::PointCloud>();
     std::ifstream file(file_path, std::ios::binary);
-    if(!file.is_open())
+    if (!file.is_open())
         return cloud;
-    
+
     file.seekg(0, std::ios::end);
     std::streampos file_size = file.tellg();
     file.seekg(0, std::ios::beg);
@@ -56,9 +53,9 @@ std::shared_ptr<open3d::geometry::PointCloud> read_bin(const std::string& file_p
     cloud->points_.resize(num_points);
     Eigen::Vector4f kitti_point;
 
-    for(std::size_t i = 0; i < num_points; ++i)
+    for (std::size_t i = 0; i < num_points; ++i)
     {
-        if(!file.read(reinterpret_cast<char*>(kitti_point.data()), point_size))
+        if (!file.read(reinterpret_cast<char *>(kitti_point.data()), point_size))
             break;
         cloud->points_[i] = kitti_point.head<3>().cast<double>();
     }
@@ -82,11 +79,17 @@ int main(int argc, char *argv[])
         target_path = TARGET_CLOUD_PATH;
     }
 
-    // auto source = open3d::io::CreatePointCloudFromFile(source_path);
-    // auto target = open3d::io::CreatePointCloudFromFile(target_path);
+    std::shared_ptr<open3d::geometry::PointCloud> source, target;
+    if (source_path.substr(source_path.size() - 4) == ".bin")
+        source = readBinFile(source_path);
+    else
+        source = open3d::io::CreatePointCloudFromFile(source_path);
 
-    auto source = read_bin(source_path);
-    auto target = read_bin(target_path);
+    if (target_path.substr(target_path.size() - 4) == ".bin")
+        target = readBinFile(target_path);
+    else
+        target = open3d::io::CreatePointCloudFromFile(target_path);
+
     if (source->IsEmpty() || target->IsEmpty())
     {
         spdlog::warn("unable to load source or target files.");
