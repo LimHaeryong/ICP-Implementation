@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
     trans = reg_result.transformation_;
     spdlog::info("Open3D ICP elapsed time : {}ms", duration);
-    spdlog::info("trans = {}", trans);
+    spdlog::info("trans = \n{}", trans);
     visualizeRegistration(*source, *target, trans);
 
     target_down->EstimateNormals();
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
     auto trans2 = icp.getResultTransform();
     spdlog::info("My ICP elapsed time : {}ms", duration);
-    spdlog::info("trans = {}", trans2);
+    spdlog::info("trans = \n{}", trans2);
     visualizeRegistration(*source, *target, trans2);
 
     return 0;

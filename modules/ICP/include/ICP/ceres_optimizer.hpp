@@ -19,7 +19,7 @@ public:
     CeresOptimizer(Type optimizer_type)
         : optimizer_type_(optimizer_type), problem_(std::make_unique<ceres::Problem>())
     {
-        options_.linear_solver_type = ceres::ITERATIVE_SCHUR;
+        options_.linear_solver_type = ceres::LinearSolverType::ITERATIVE_SCHUR;
         options_.num_threads = 8;
         options_.minimizer_progress_to_stdout = false;
         options_.logging_type = ceres::SILENT;
@@ -28,7 +28,7 @@ public:
         {
         case Type::PointToPlane :
             options_.max_num_iterations = 10;
-            options_.parameter_tolerance = 1e-7;
+            options_.parameter_tolerance = 1e-8;
             options_.gradient_tolerance = 1e-8;
             options_.function_tolerance = 1e-4;
             break;
