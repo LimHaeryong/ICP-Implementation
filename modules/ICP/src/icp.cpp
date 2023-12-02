@@ -8,7 +8,7 @@
 #pragma omp declare reduction(matrix_reduction : Eigen::MatrixXd : omp_out += omp_in) initializer(omp_priv = Eigen::MatrixXd::Zero(omp_orig.rows(), omp_orig.cols()))
 #pragma omp declare reduction(vec3d_reduction : Eigen::Vector3d : omp_out += omp_in) initializer(omp_priv = Eigen::Vector3d::Zero())
 
-void ICP::align(const PointCloud &source_cloud, const PointCloud &target_cloud)
+void ICP::align(PointCloud &source_cloud, PointCloud &target_cloud)
 {
     total_transform_ = Eigen::Matrix4d::Identity();
     PointCloud tmp_cloud = source_cloud;
@@ -25,8 +25,8 @@ void ICP::align(const PointCloud &source_cloud, const PointCloud &target_cloud)
         Eigen::Matrix4d transform = computeTransform(tmp_cloud, target_cloud);
         auto t_2 = std::chrono::high_resolution_clock::now();
         this->total_transform_ *= transform;
-        if (euclidean_error_ < euclidean_error_ ||
-            transform.isApprox(Eigen::Matrix4d::Identity(), transformation_epsilon_))
+        if (euclidean_error_ < euclidean_fitness_epsilon_ ||
+            transform.block<3, 1>(0, 3).norm() < transformation_epsilon_)
         {
             converged_ = true;
             break;
@@ -62,7 +62,7 @@ Eigen::Matrix4d ICP::computeTransform(const PointCloud &source_cloud, const Poin
     P /= static_cast<double>(num_corr);
     Q /= static_cast<double>(num_corr);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < num_corr; ++i)
     {
         X.col(i) = source_cloud.points_[correspondence_set_[i].first];

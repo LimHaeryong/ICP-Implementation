@@ -65,3 +65,25 @@ target_compile_definitions(icp_plane_example PRIVATE
     SOURCE_CLOUD_PATH="${CLOUD_PATH_1}"
     TARGET_CLOUD_PATH="${CLOUD_PATH_2}"
 )
+
+# GICP example
+add_executable(gicp_example examples/gicp_example.cpp)
+if(NOT ${DEP_LIST} STREQUAL "")
+    add_dependencies(gicp_example 
+        ${DEP_LIST}
+    )
+endif()
+target_include_directories(gicp_example PUBLIC
+    ${DEP_INCLUDE_DIR}
+)
+target_link_directories(gicp_example PRIVATE
+    ${DEP_LIBS_DIR}
+)
+target_link_libraries(gicp_example PUBLIC
+    ${DEP_LIBS}
+    ICP
+)
+target_compile_definitions(gicp_example PRIVATE
+    SOURCE_CLOUD_PATH="${CLOUD_PATH_1}"
+    TARGET_CLOUD_PATH="${CLOUD_PATH_2}"
+)

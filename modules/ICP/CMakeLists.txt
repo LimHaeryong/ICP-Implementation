@@ -10,6 +10,7 @@ add_library(${LIBRARY_NAME}
     src/icp_base.cpp    
     src/icp.cpp
     src/icp_plane.cpp
+    src/gicp.cpp
     src/ceres_optimizer.cpp
 )
 if(NOT ${DEP_LIST} STREQUAL "")

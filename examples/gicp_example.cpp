@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -9,7 +8,7 @@
 #include <spdlog/fmt/ostr.h>
 #include <open3d/Open3D.h>
 
-#include "ICP/icp_plane.hpp"
+#include "ICP/gicp.hpp"
 
 void visualizeRegistration(const open3d::geometry::PointCloud &source,
                            const open3d::geometry::PointCloud &target,
@@ -113,51 +112,35 @@ int main(int argc, char *argv[])
     source_down->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(voxel_size * 2.0, 30));
     target_down->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(voxel_size * 2.0, 30));
 
-    // 1. Open3D ICP Point to Plane
+    // 1. Open3D GICP
     auto t_start = std::chrono::high_resolution_clock::now();
-    auto reg_result = open3d::pipelines::registration::RegistrationICP(
+    auto reg_result = open3d::pipelines::registration::RegistrationGeneralizedICP(
         *source_down, *target_down, max_correspondence_dist, Eigen::Matrix4d::Identity(),
-        open3d::pipelines::registration::TransformationEstimationPointToPlane(),
+        open3d::pipelines::registration::TransformationEstimationForGeneralizedICP(),
         open3d::pipelines::registration::ICPConvergenceCriteria(1e-6, 1e-6, iteration));
     auto t_end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
 
     trans = reg_result.transformation_;
 
-    spdlog::info("Open3D ICP elapsed time : {}ms", duration);
+    spdlog::info("Open3D GICP elapsed time : {}ms", duration);
     spdlog::info("trans = \n{}", trans);
     visualizeRegistration(*source, *target, trans);
 
-    // 2. my ICP Point to Plane Linear Solver
-    ICP_PLANE icp_plane_linear(ICP_PLANE::SolverType::Linear);
-    icp_plane_linear.setIteration(iteration);
-    icp_plane_linear.setMaxCorrespondenceDist(max_correspondence_dist);
+    // 2. my GICP
+    GICP gicp(GICP::SolverType::NonLinear);
+    gicp.setIteration(iteration);
+    gicp.setMaxCorrespondenceDist(max_correspondence_dist);
 
     t_start = std::chrono::high_resolution_clock::now();
-    icp_plane_linear.align(*source_down, *target_down);
+    gicp.align(*source_down, *target_down);
     t_end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
 
-    auto trans2 = icp_plane_linear.getResultTransform();
+    auto trans2 = gicp.getResultTransform();
 
-    spdlog::info("My Point to Plane ICP linear elapsed time : {}ms", duration);
+    spdlog::info("My GICP elapsed time : {}ms", duration);
     spdlog::info("trans = \n{}", trans2);
     visualizeRegistration(*source, *target, trans2);
-
-    // 3. my ICP Point to Plane Nonlinear Solver
-    ICP_PLANE icp_plane_nonlinear(ICP_PLANE::SolverType::NonLinear);
-    icp_plane_nonlinear.setIteration(iteration);
-    icp_plane_nonlinear.setMaxCorrespondenceDist(max_correspondence_dist);
-
-    t_start = std::chrono::high_resolution_clock::now();
-    icp_plane_nonlinear.align(*source_down, *target_down);
-    t_end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
-
-    auto trans3 = icp_plane_nonlinear.getResultTransform();
-
-    spdlog::info("My Point to Plane ICP Nonlinear elapsed time : {}ms", duration);
-    spdlog::info("trans = \n{}", trans3);
-    visualizeRegistration(*source, *target, trans3);
     return 0;
 }

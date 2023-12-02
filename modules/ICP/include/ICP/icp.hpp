@@ -7,7 +7,7 @@ class ICP : public ICP_BASE
 {
 public:
     ICP() {}
-    void align(const PointCloud &source_cloud, const PointCloud &target_cloud) override;
+    void align(PointCloud &source_cloud, PointCloud &target_cloud) override;
 
 private:
     Eigen::Matrix4d computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud);

@@ -16,7 +16,7 @@ public:
 
     ICP_BASE() {}
 
-    virtual void align(const PointCloud &source_cloud, const PointCloud &target_cloud) = 0;
+    virtual void align(PointCloud &source_cloud, PointCloud &target_cloud) = 0;
 
     void setIteration(int iteration) { max_iteration_ = iteration; }
     void setMaxCorrespondenceDist(double dist) { max_corres_dist_ = dist; }
