@@ -49,13 +49,19 @@ std::shared_ptr<open3d::geometry::PointCloud> readBinFile(const std::string &fil
     std::size_t point_size = sizeof(float) * 4;
     std::size_t num_points = file_size / point_size;
 
+    std::vector<float> all_points(num_points * 4);
+    if(!file.read(reinterpret_cast<char*>(all_points.data()), file_size))
+    {
+        file.close();
+        return cloud;
+    }
+    file.close();
+
     cloud->points_.resize(num_points);
     Eigen::Vector4f kitti_point;
-
     for (std::size_t i = 0; i < num_points; ++i)
     {
-        if (!file.read(reinterpret_cast<char *>(kitti_point.data()), point_size))
-            break;
+        std::copy_n(all_points.begin() + 4 * i, 4, kitti_point.data());
         cloud->points_[i] = kitti_point.head<3>().cast<double>();
     }
 
