@@ -8,7 +8,6 @@ This repository utilizes the Open3D library for PointCloud processing and Ceres-
 
 - ICP(point to plane) Algorithm : [Linear Least-Squares Optimization for Point-to-Plane ICP Surface Registration](https://www.comp.nus.edu.sg/~lowkl/publications/lowk_point-to-plane_icp_techrep.pdf) by Kok-Lim Low.
 
-TODO
 - GICP Algorithm : [Generalized-ICP](https://www.roboticsproceedings.org/rss05/p21.pdf) by Aleksandr V. Segal, Dirk Haehnel and Sebastian Thrun.
 ## Dependencies
 
@@ -39,12 +38,12 @@ Demonstrates the basic usage of the ICP algorithm. Additionally, compares the re
 
 2. Point to Plane ICP example
 ```
-./icp_plane_example.cpp
+./icp_plane_example
 ```
 
 3. Generalized ICP example
 ```
-# TODO
+./gicp_example
 ```
 
 ## Result
