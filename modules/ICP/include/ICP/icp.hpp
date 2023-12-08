@@ -7,10 +7,9 @@ class ICP : public ICP_BASE
 {
 public:
     ICP() {}
-    void align(PointCloud &source_cloud, PointCloud &target_cloud) override;
-
 private:
-    Eigen::Matrix4d computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud);
+    bool checkValidity(PointCloud &source_cloud, PointCloud &target_cloud) override;
+    Eigen::Matrix4d computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud) override;
 };
 
 #endif // _ICP_ICP_HPP_

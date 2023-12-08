@@ -4,82 +4,68 @@
 #include <omp.h>
 
 #include "ICP/icp.hpp"
+#include "ICP/utils.hpp"
 
-#pragma omp declare reduction(matrix_reduction : Eigen::MatrixXd : omp_out += omp_in) initializer(omp_priv = Eigen::MatrixXd::Zero(omp_orig.rows(), omp_orig.cols()))
-#pragma omp declare reduction(vec3d_reduction : Eigen::Vector3d : omp_out += omp_in) initializer(omp_priv = Eigen::Vector3d::Zero())
-
-void ICP::align(PointCloud &source_cloud, PointCloud &target_cloud)
+bool ICP::checkValidity(PointCloud &source_cloud, PointCloud &target_cloud)
 {
-    total_transform_ = Eigen::Matrix4d::Identity();
-    PointCloud tmp_cloud = source_cloud;
-    tree_ = std::make_shared<KDTree>(target_cloud);
-    correspondence_set_.reserve(source_cloud.points_.size());
-
-    int64_t t_corr = 0, t_comp = 0, t_trans = 0;
-
-    for (int i = 0; i < max_iteration_; ++i)
+    if (source_cloud.IsEmpty() || target_cloud.IsEmpty())
     {
-        auto t_0 = std::chrono::high_resolution_clock::now();
-        correspondenceMatching(tmp_cloud);
-        auto t_1 = std::chrono::high_resolution_clock::now();
-        Eigen::Matrix4d transform = computeTransform(tmp_cloud, target_cloud);
-        auto t_2 = std::chrono::high_resolution_clock::now();
-        this->total_transform_ *= transform;
-        if (euclidean_error_ < euclidean_fitness_epsilon_ ||
-            transform.block<3, 1>(0, 3).norm() < transformation_epsilon_)
-        {
-            converged_ = true;
-            break;
-        }
-        tmp_cloud.Transform(transform);
-        auto t_3 = std::chrono::high_resolution_clock::now();
-
-        t_corr += std::chrono::duration_cast<std::chrono::microseconds>(t_1 - t_0).count();
-        t_comp += std::chrono::duration_cast<std::chrono::microseconds>(t_2 - t_1).count();
-        t_trans += std::chrono::duration_cast<std::chrono::microseconds>(t_3 - t_2).count();
+        spdlog::warn("source cloud or target cloud are empty!");
+        return false;
     }
 
-    spdlog::info("correspondence elapsed time : {} micro seconds", t_corr);
-    spdlog::info("compute transform elapsed time : {} micro seconds", t_comp);
-    spdlog::info("transform/check elapsed time : {} micro seconds", t_trans);
+    return true;
+}
+
+std::pair<Eigen::Matrix<double, 3, 6>, Eigen::Vector3d> compute_Ai_and_bi(const Eigen::Vector3d &pi, const Eigen::Vector3d &qi)
+{
+    Eigen::Matrix<double, 3, 6> Ai;
+    Eigen::Vector3d bi;
+
+    Ai.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
+    Ai.block<3, 3>(0, 3) = -1.0 * skewSymmetric(pi);
+
+    bi = pi - qi;
+
+    return std::make_pair(Ai, bi);
 }
 
 Eigen::Matrix4d ICP::computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud)
 {
+    Eigen::Matrix<double, 6, 6> C;
+    Eigen::Vector<double, 6> d;
+    C.setZero();
+    d.setZero();
+
     int num_corr = correspondence_set_.size();
 
-    Eigen::MatrixXd X(3, num_corr);
-    Eigen::MatrixXd Y(3, num_corr);
-    Eigen::Vector3d P = Eigen::Vector3d::Zero();
-    Eigen::Vector3d Q = Eigen::Vector3d::Zero();
-
-    for (int i = 0; i < num_corr; ++i)
+#pragma omp parallel
     {
-        P += source_cloud.points_[correspondence_set_[i].first];
-        Q += target_cloud.points_[correspondence_set_[i].second];
+        Eigen::Matrix<double, 6, 6> C_private;
+        Eigen::Vector<double, 6> d_private;
+        C_private.setZero();
+        d_private.setZero();
+#pragma omp for nowait
+        for (int i = 0; i < num_corr; ++i)
+        {
+            const auto& p = source_cloud.points_[correspondence_set_[i].first];
+            const auto& q = target_cloud.points_[correspondence_set_[i].second];
+            auto [Ai, bi] = compute_Ai_and_bi(p, q);
+            //double wi = HuberLoss(2.0, bi.squaredNorm());
+            double wi = 1.0;
+            C_private += wi * Ai.transpose() * Ai;
+            d_private += wi * Ai.transpose() * bi;
+        }
+#pragma omp critical
+        {
+            C += C_private;
+            d += d_private;
+        }
     }
 
-    P /= static_cast<double>(num_corr);
-    Q /= static_cast<double>(num_corr);
-
-#pragma omp parallel for
-    for (int i = 0; i < num_corr; ++i)
-    {
-        X.col(i) = source_cloud.points_[correspondence_set_[i].first];
-        Y.col(i) = target_cloud.points_[correspondence_set_[i].second];
-    }
-
-    Eigen::Matrix3d S = X * Y.transpose();
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(S, Eigen::ComputeFullU | Eigen::ComputeFullV);
-
-    Eigen::Matrix3d D = Eigen::Matrix3d::Identity();
-    D(2, 2) = (svd.matrixV() * svd.matrixU().transpose()).determinant();
-
-    Eigen::Matrix3d R = svd.matrixV() * D * svd.matrixU().transpose();
-    Eigen::Vector3d t = Q - R * P;
+    Eigen::Vector<double, 6> x_opt = C.ldlt().solve(-d);
     Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
-    transform.block<3, 3>(0, 0) = R;
-    transform.block<3, 1>(0, 3) = t;
-
+    transform.block<3, 3>(0, 0) = createRotationMatrix(x_opt.tail(3));
+    transform.block<3, 1>(0, 3) = x_opt.head(3);
     return transform;
 }

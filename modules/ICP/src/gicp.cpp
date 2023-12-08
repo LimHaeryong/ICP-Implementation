@@ -8,52 +8,43 @@
 
 #include "ICP/gicp.hpp"
 
-void GICP::align(PointCloud &source_cloud, PointCloud &target_cloud)
+bool GICP::checkValidity(PointCloud &source_cloud, PointCloud &target_cloud)
 {
-    if ((!source_cloud.HasNormals() && !source_cloud.HasCovariances()) || (!target_cloud.HasNormals() && !target_cloud.HasCovariances()))
+    if (source_cloud.IsEmpty() || target_cloud.IsEmpty())
     {
-        spdlog::warn("GICP needs normals and covariances in both pointclouds.");
-        return;
+        spdlog::warn("source cloud or target cloud are empty!");
+        return false;
     }
 
-    if (!source_cloud.HasCovariances())
-        computeCovariancesFromNormals(source_cloud);
-
-    if (!target_cloud.HasCovariances())
-        computeCovariancesFromNormals(target_cloud);
-
-    total_transform_ = Eigen::Matrix4d::Identity();
-    PointCloud tmp_cloud = source_cloud;
-    tree_ = std::make_shared<KDTree>(target_cloud);
-    correspondence_set_.reserve(source_cloud.points_.size());
-
-    int64_t t_corr = 0, t_comp = 0, t_trans = 0;
-
-    for (int i = 0; i < max_iteration_; ++i)
+    if(!source_cloud.HasCovariances())
     {
-        auto t_0 = std::chrono::high_resolution_clock::now();
-        correspondenceMatching(tmp_cloud);
-        auto t_1 = std::chrono::high_resolution_clock::now();
-        Eigen::Matrix4d transform = computeTransform(tmp_cloud, target_cloud);
-        auto t_2 = std::chrono::high_resolution_clock::now();
-        this->total_transform_ *= transform;
-        if (euclidean_error_ < euclidean_fitness_epsilon_ ||
-            transform.block<3, 1>(0, 3).norm() < transformation_epsilon_)
+        if(source_cloud.HasNormals())
         {
-            converged_ = true;
-            break;
+            spdlog::info("compute source cloud covariances from normals");
+            computeCovariancesFromNormals(source_cloud);
         }
-        tmp_cloud.Transform(transform);
-        auto t_3 = std::chrono::high_resolution_clock::now();
-
-        t_corr += std::chrono::duration_cast<std::chrono::microseconds>(t_1 - t_0).count();
-        t_comp += std::chrono::duration_cast<std::chrono::microseconds>(t_2 - t_1).count();
-        t_trans += std::chrono::duration_cast<std::chrono::microseconds>(t_3 - t_2).count();
+        else
+        {
+            spdlog::warn("source cloud needs normals or covariances");
+            return false;
+        }
     }
 
-    spdlog::info("correspondence elapsed time : {} micro seconds", t_corr);
-    spdlog::info("compute transform elapsed time : {} micro seconds", t_comp);
-    spdlog::info("transform/check elapsed time : {} micro seconds", t_trans);
+    if(!target_cloud.HasCovariances())
+    {
+        if(target_cloud.HasNormals())
+        {
+            spdlog::info("compute target cloud covariances from normals");
+            computeCovariancesFromNormals(target_cloud);
+        }
+        else
+        {
+            spdlog::warn("target cloud needs normals or covariances");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 Eigen::Matrix4d GICP::computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud)

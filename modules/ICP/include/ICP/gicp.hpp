@@ -7,12 +7,6 @@
 class GICP : public ICP_BASE
 {
 public:
-    enum SolverType
-    {
-        Linear,
-        NonLinear
-    };
-
     GICP(SolverType solverType = SolverType::Linear)
         : solverType_(solverType)
     {
@@ -20,15 +14,15 @@ public:
             optimizer_ = std::make_unique<CeresOptimizer>(CeresOptimizer::Type::GICP);
     }
 
-    void align(PointCloud &source_cloud, PointCloud &target_cloud) override;
-
 private:
+    bool checkValidity(PointCloud &source_cloud, PointCloud &target_cloud) override;
+    Eigen::Matrix4d computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud) override;
+
     SolverType solverType_;
     std::unique_ptr<CeresOptimizer> optimizer_;
 
     double cov_epsilon_ = 1e-3;
 
-    Eigen::Matrix4d computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud);
     Eigen::Matrix4d computeTransformNonlinearSolver(const PointCloud &source_cloud, const PointCloud &target_cloud);
     Eigen::Matrix4d computeTransformLinearSolver(const PointCloud &source_cloud, const PointCloud &target_cloud);
 
