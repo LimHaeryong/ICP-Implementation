@@ -7,7 +7,7 @@
 class GICP : public ICP_BASE
 {
 public:
-    GICP(SolverType solverType = SolverType::Linear)
+    GICP(SolverType solverType = SolverType::NonLinear)
         : solverType_(solverType)
     {
         if (solverType == SolverType::NonLinear)

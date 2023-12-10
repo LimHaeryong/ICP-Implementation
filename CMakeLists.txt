@@ -84,6 +84,6 @@ target_link_libraries(gicp_example PUBLIC
     ICP
 )
 target_compile_definitions(gicp_example PRIVATE
-    SOURCE_CLOUD_PATH="${CLOUD_PATH_1}"
-    TARGET_CLOUD_PATH="${CLOUD_PATH_2}"
+        SOURCE_CLOUD_PATH="${CLOUD_PATH_1}"
+    TARGET_CLOUD_PATH="${CLOUD_PATH_3}"
 )

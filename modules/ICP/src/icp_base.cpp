@@ -26,7 +26,7 @@ void ICP_BASE::align(PointCloud &source_cloud, PointCloud &target_cloud)
         auto t_1 = std::chrono::high_resolution_clock::now();
         Eigen::Matrix4d transform = computeTransform(tmp_cloud, target_cloud);
         auto t_2 = std::chrono::high_resolution_clock::now();
-        this->total_transform_ *= transform;
+        total_transform_ = transform * total_transform_;
         if (convergenceCheck(transform))
         {
             t_corr += std::chrono::duration_cast<std::chrono::microseconds>(t_1 - t_0).count();
