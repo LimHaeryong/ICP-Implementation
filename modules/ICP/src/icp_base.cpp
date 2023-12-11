@@ -31,6 +31,7 @@ void ICP_BASE::align(PointCloud &source_cloud, PointCloud &target_cloud)
         {
             t_corr += std::chrono::duration_cast<std::chrono::microseconds>(t_1 - t_0).count();
             t_comp += std::chrono::duration_cast<std::chrono::microseconds>(t_2 - t_1).count();
+            spdlog::info("ICP converged! iter = {}", i + 1);
             converged_ = true;
             break;
         }
@@ -83,17 +84,23 @@ void ICP_BASE::correspondenceMatching(const PointCloud &tmp_cloud)
 
 bool ICP_BASE::convergenceCheck(const Eigen::Matrix4d &transform_iter) const
 {
-    double relative_matching_rmse = std::abs(matching_rmse_ - matching_rmse_prev_) / matching_rmse_prev_;
-    if(relative_matching_rmse > relative_matching_rmse_threshold_)
+    double relative_matching_rmse = std::abs(matching_rmse_ - matching_rmse_prev_);
+    if (relative_matching_rmse > relative_matching_rmse_threshold_)
+    {
         return false;
-    
+    }
+
     double cos_theta = 0.5 * (transform_iter.trace() - 2.0);
-    if(cos_theta < cos_theta_threshold_)
+    if (cos_theta < cos_theta_threshold_)
+    {
         return false;
+    }
 
     double trans_sq = transform_iter.block<3, 1>(0, 3).squaredNorm();
-    if(trans_sq > translation_threshold_)
+    if (trans_sq > translation_threshold_)
+    {
         return false;
+    }
 
     return true;
 }

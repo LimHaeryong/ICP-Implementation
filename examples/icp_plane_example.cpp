@@ -134,36 +134,37 @@ int main(int argc, char *argv[])
     spdlog::info("trans = \n{}", trans);
     visualizeRegistration(*source, *target, trans);
 
-    // 2. my ICP Point to Plane Linear Solver
-    ICP_PLANE icp_plane_linear(ICP_PLANE::SolverType::Linear);
-    icp_plane_linear.setIteration(iteration);
-    icp_plane_linear.setMaxCorrespondenceDist(max_correspondence_dist);
+    // 2. my Point to Plane ICP using Least Squares
+    ICP_PLANE icp_plane(ICP_BASE::SolverType::LeastSquares);
+    icp_plane.setIteration(iteration);
+    icp_plane.setMaxCorrespondenceDist(max_correspondence_dist);
 
     t_start = std::chrono::high_resolution_clock::now();
-    icp_plane_linear.align(*source_down, *target_down);
+    icp_plane.align(*source_down, *target_down);
     t_end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
 
-    auto trans2 = icp_plane_linear.getResultTransform();
+    auto trans2 = icp_plane.getResultTransform();
 
-    spdlog::info("My Point to Plane ICP linear elapsed time : {}ms", duration);
+    spdlog::info("My Point to Plane ICP Using Least Squares elapsed time : {}ms", duration);
     spdlog::info("trans = \n{}", trans2);
     visualizeRegistration(*source, *target, trans2);
 
-    // 3. my ICP Point to Plane Nonlinear Solver
-    ICP_PLANE icp_plane_nonlinear(ICP_PLANE::SolverType::NonLinear);
-    icp_plane_nonlinear.setIteration(iteration);
-    icp_plane_nonlinear.setMaxCorrespondenceDist(max_correspondence_dist);
+    // 3. my Point to Plane ICP using Ceres-Solver
+    ICP_PLANE icp_plane2(ICP_BASE::SolverType::LeastSquaresUsingCeres);
+    icp_plane2.setIteration(iteration);
+    icp_plane2.setMaxCorrespondenceDist(max_correspondence_dist);
 
     t_start = std::chrono::high_resolution_clock::now();
-    icp_plane_nonlinear.align(*source_down, *target_down);
+    icp_plane2.align(*source_down, *target_down);
     t_end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
 
-    auto trans3 = icp_plane_nonlinear.getResultTransform();
+    auto trans3 = icp_plane2.getResultTransform();
 
-    spdlog::info("My Point to Plane ICP Nonlinear elapsed time : {}ms", duration);
+    spdlog::info("My Point to Plane ICP Using Ceres-Solver elapsed time : {}ms", duration);
     spdlog::info("trans = \n{}", trans3);
     visualizeRegistration(*source, *target, trans3);
+
     return 0;
 }

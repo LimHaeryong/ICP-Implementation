@@ -6,6 +6,8 @@
 #include <open3d/Open3D.h>
 #include <Eigen/Dense>
 
+#include "ICP/ceres_optimizer.hpp"
+
 class ICP_BASE
 {
 public:
@@ -14,13 +16,14 @@ public:
     using KDTree = typename open3d::geometry::KDTreeFlann;
     using KDTreePtr = typename std::shared_ptr<KDTree>;
 
-    ICP_BASE() {}
-
-    enum SolverType
+    enum class SolverType
     {
-        Linear,
-        NonLinear
+        SVD,
+        LeastSquares,
+        LeastSquaresUsingCeres
     };
+
+    ICP_BASE() {}
 
     void align(PointCloud &source_cloud, PointCloud &target_cloud);
 
@@ -45,6 +48,8 @@ protected:
     virtual Eigen::Matrix4d computeTransform(const PointCloud &source_cloud, const PointCloud &target_cloud) = 0;
     bool convergenceCheck(const Eigen::Matrix4d& transform_iter) const;
 
+    SolverType solver_type_;
+    std::unique_ptr<CeresOptimizer> optimizer_;
     KDTreePtr tree_ = nullptr;
     Eigen::Matrix4d total_transform_ = Eigen::Matrix4d::Identity();
     std::vector<std::pair<int, int>> correspondence_set_;

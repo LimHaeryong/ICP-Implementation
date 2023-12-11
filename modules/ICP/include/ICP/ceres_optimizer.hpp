@@ -11,10 +11,10 @@
 class CeresOptimizer
 {
 public:
-    enum Type
+    enum class Type
     {
-        PointToPlane = 0,
-        GICP = 1
+        PointToPlane,
+        GICP
     };
 
     CeresOptimizer(Type optimizer_type)
@@ -30,8 +30,8 @@ public:
         case Type::PointToPlane:
             quaternion_manifold_ = new ceres::EigenQuaternionManifold();
             loss_function_ = new ceres::HuberLoss(1.0);
-            options_.linear_solver_type = ceres::LinearSolverType::ITERATIVE_SCHUR;
-            options_.max_num_iterations = 10;
+            options_.linear_solver_type = ceres::LinearSolverType::DENSE_NORMAL_CHOLESKY;
+            options_.max_num_iterations = 1;
             options_.parameter_tolerance = 1e-8;
             options_.gradient_tolerance = 1e-8;
             options_.function_tolerance = 1e-4;
@@ -39,8 +39,8 @@ public:
         case Type::GICP:
             quaternion_manifold_ = new ceres::EigenQuaternionManifold();
             loss_function_ = new ceres::HuberLoss(1.0);
-            options_.linear_solver_type = ceres::LinearSolverType::ITERATIVE_SCHUR;
-            options_.max_num_iterations = 10;
+            options_.linear_solver_type = ceres::LinearSolverType::DENSE_NORMAL_CHOLESKY;
+            options_.max_num_iterations = 1;
             options_.parameter_tolerance = 1e-8;
             options_.gradient_tolerance = 1e-8;
             options_.function_tolerance = 1e-4;

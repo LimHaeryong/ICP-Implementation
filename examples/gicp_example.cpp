@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     }
 
     double voxel_size = 0.3;
-    int iteration = 30;
+    int iteration = 100;
     Eigen::Matrix4d trans = Eigen::Matrix4d::Identity();
     double max_correspondence_dist = 10.0;
 
@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
     spdlog::info("trans = \n{}", trans);
     visualizeRegistration(*source, *target, trans);
 
-    // 2. my GICP
-    GICP gicp(GICP::SolverType::NonLinear);
+    // 2. my GICP using Least Squares
+    GICP gicp(ICP_BASE::SolverType::LeastSquares);
     gicp.setIteration(iteration);
     gicp.setMaxCorrespondenceDist(max_correspondence_dist);
 
@@ -145,8 +145,25 @@ int main(int argc, char *argv[])
 
     auto trans2 = gicp.getResultTransform();
 
-    spdlog::info("My GICP elapsed time : {}ms", duration);
+    spdlog::info("My GICP Using Least Squares elapsed time : {}ms", duration);
     spdlog::info("trans = \n{}", trans2);
     visualizeRegistration(*source, *target, trans2);
+
+    // 3. my GICP using Ceres-Solver
+    GICP gicp2(ICP_BASE::SolverType::LeastSquaresUsingCeres);
+    gicp2.setIteration(iteration);
+    gicp2.setMaxCorrespondenceDist(max_correspondence_dist);
+
+    t_start = std::chrono::high_resolution_clock::now();
+    gicp2.align(*source_down, *target_down);
+    t_end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
+
+    auto trans3 = gicp2.getResultTransform();
+
+    spdlog::info("My GICP Using Ceres-Solver elapsed time : {}ms", duration);
+    spdlog::info("trans = \n{}", trans3);
+    visualizeRegistration(*source, *target, trans3);
+
     return 0;
 }

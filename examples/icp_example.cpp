@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
     auto source_down = source->VoxelDownSample(voxel_size);
     auto target_down = target->VoxelDownSample(voxel_size);
 
+    // 1. Open3D ICP
     auto t_start = std::chrono::high_resolution_clock::now();
     auto reg_result = open3d::pipelines::registration::RegistrationICP(
         *source_down, *target_down, max_correspondence_dist, Eigen::Matrix4d::Identity(),
@@ -122,9 +123,8 @@ int main(int argc, char *argv[])
     spdlog::info("trans = \n{}", trans);
     visualizeRegistration(*source, *target, trans);
 
-    target_down->EstimateNormals();
-
-    ICP icp;
+    // 2. My ICP Using SVD
+    ICP icp(ICP::SolverType::SVD);
     icp.setIteration(iteration);
     icp.setMaxCorrespondenceDist(max_correspondence_dist);
     t_start = std::chrono::high_resolution_clock::now();
@@ -135,6 +135,19 @@ int main(int argc, char *argv[])
     spdlog::info("My ICP elapsed time : {}ms", duration);
     spdlog::info("trans = \n{}", trans2);
     visualizeRegistration(*source, *target, trans2);
+
+    // 3. My ICP Using Least Squares
+    ICP icp2(ICP::SolverType::LeastSquares);
+    icp2.setIteration(iteration);
+    icp2.setMaxCorrespondenceDist(max_correspondence_dist);
+    t_start = std::chrono::high_resolution_clock::now();
+    icp2.align(*source_down, *target_down);
+    t_end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
+    auto trans3 = icp2.getResultTransform();
+    spdlog::info("My ICP elapsed time : {}ms", duration);
+    spdlog::info("trans = \n{}", trans3);
+    visualizeRegistration(*source, *target, trans3);
 
     return 0;
 }
